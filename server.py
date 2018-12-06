@@ -3,7 +3,7 @@ class Server:
 
     connected_sockets = []  # список подключенных сокетов
     encoding = "utf-8"  # кодировка информации
-    port = 9090  # Будем принимать подключение в порт с таким номером
+    port = 9093  # Будем принимать подключение в порт с таким номером
     host = ''  # Подключение принимаем от любого компьютера в сети
     mes_size = 2048  # максимальный размер сообщения
     max_queue = 5  # число соединений, которые будут находиться в очереди соединений до вызова accept
@@ -22,7 +22,7 @@ class Server:
         self.server_socket.bind((self.host, self.port))
         self.tls = use_transport_layer_security
         self.server_socket.listen(self.max_queue)
-
+        self.users_online = 0
         if use_transport_layer_security:
             # если используем ssl нужно создать контекст для обертки сокетов
             import ssl
@@ -34,7 +34,8 @@ class Server:
         try:
             while True:
                 data = client.recv(self.mes_size)
-                data = bytes("recv from ID" + client_id + ": ", encoding=self.encoding) + data
+                if not data:
+                    break
                 for other_conn in self.connected_sockets:
                     if other_conn == client:
                         continue
@@ -47,10 +48,10 @@ class Server:
             client.close()
             self.connected_sockets.remove(client)
             print("disconnected:", address)
-            print("users online:", len(self.connected_sockets))
+            self.users_online -= 1
+            print("users online:", self.users_online)
 
     # нужно научиться нормально завершать сервер
-    """
     def server_command_handler(self):
         while True:
             command = input()
@@ -61,21 +62,22 @@ class Server:
                     print(c)
             if command == '/end':
                 print("server stopped")
+                self.server_socket.shutdown(2)
+                self.server_socket.close()
                 for c in self.connected_sockets:
-                    c.shutdown(c.SHUT_RDWR)
+                    c.shutdown(2)
                     c.close()
                 self.connected_sockets.clear()
-                exit(0)
-    """
+                break
 
     def run(self):
         import threading
-        """
+
         command_handler = threading.Thread(target=self.server_command_handler)
+        command_handler.setDaemon(True)
         command_handler.start()
 
         print("type /commands to see a list of available commands")
-        """
 
         print("the server is running")
 
@@ -85,6 +87,8 @@ class Server:
             if self.tls:
                 connected_socket = self.context.wrap_socket(connected_socket, server_side=True)
             print("connected:", connected_addres)
+            self.users_online += 1
+            print("users online:", self.users_online)
             self.connected_sockets.append(connected_socket)
             ID = str(len(self.connected_sockets))
             connected_socket.sendall(bytes("your ID: " + ID + "\n", self.encoding))

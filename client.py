@@ -1,8 +1,8 @@
 
 class Client:
     encoding = "utf-8"
-    port_to_connect = 9090
-    mes_size = 1024
+    port_to_connect = 9093
+    mes_size = 2048
 
     def __init__(self, use_transport_layer_security=False, use_program_security=False, server_hostname='localhost'):
         import socket
@@ -21,12 +21,13 @@ class Client:
         if use_program_security:
             from cryptography.fernet import Fernet
             with open("key", 'r') as key_file:
-                self.fernet_key = bytes(key_file.readline(), encoding=self.encoding)
+                self.fernet_key = bytes(key_file.readline().strip(), encoding=self.encoding)
             self.fernet = Fernet(self.fernet_key)
 
         self.socket.connect((server_hostname, self.port_to_connect))
-        server_data = self.socket.recv(self.mes_size)  #Получаем ID
-        print(server_data.decode().strip())
+        server_data = self.socket.recv(self.mes_size).decode()  #Получаем ID
+        print(server_data.strip())
+        self.id = server_data.split()[2]
 
     def run(self):
         import threading
@@ -45,6 +46,7 @@ class Client:
     def user_data(self):
         while True:
             user_data = input()
+            user_data = "recv from " + self.id + ": " + user_data
             if self.cipher:
                 user_data = self.fernet.encrypt(bytes(user_data, encoding=self.encoding))
             else:
@@ -56,7 +58,7 @@ class Client:
 def main():
     from sys import argv
 
-    address = '192.168.1.33'
+    address = '192.168.1.62'
     tls = False
     cipher = False
 
