@@ -4,13 +4,24 @@ class Client:
     port_to_connect = 9090
     mes_size = 1024
 
-    def __init__(self):
+    def __init__(self, use_transport_layer_security=False, use_program_security=False, server_hostname='localhost'):
         import socket
-        import ssl
 
-        self.sock = socket.socket()
-        self.sock.connect(('localhost', self.port_to_connect))
-        server_data = self.sock.recv(self.mes_size)
+        self.cipher = use_program_security
+
+        self.socket = socket.socket()
+
+        if use_transport_layer_security:
+            import ssl
+            context = ssl.create_default_context()
+            # context.load_verify_locations("server_cert.pem")
+            context.load_verify_locations("ssl_cert.pem")
+            context.check_hostname = False
+            self.socket = context.wrap_socket(self.socket, server_hostname=server_hostname)
+
+        self.socket.connect((server_hostname, self.port_to_connect))
+
+        server_data = self.socket.recv(self.mes_size)
         print("ID:", server_data.strip().split()[2].decode())
 
     def run(self):
@@ -20,7 +31,7 @@ class Client:
         user_thread.start()
 
         while True:
-            server_data = self.sock.recv(self.mes_size)
+            server_data = self.socket.recv(self.mes_size)
             if not server_data:
                 break
             print(server_data.decode())
@@ -28,11 +39,26 @@ class Client:
     def user_data(self):
         while True:
             user_data = input()
-            self.sock.send(bytes(user_data, self.encoding))
+            if user_data:  # не отсылаем пустую строку, это ломает что-то внутри _ssl.c
+                self.socket.send(bytes(user_data, self.encoding))
 
 
 def main():
-    client = Client()
+    from sys import argv
+
+    address = '192.168.1.33'
+    tls = False
+    cipher = False
+
+    for arg in argv[1:]:
+        if arg == '--tls':
+            tls = True
+        elif arg == '--cipher':
+            cipher = True
+        else:
+            address = arg
+
+    client = Client(tls, cipher, address)
     client.run()
 
 
