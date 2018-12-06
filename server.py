@@ -9,7 +9,7 @@ class Server:
     mes_size = 1024  # размер сообщения
     max_queue = 2  # - максимальный размер очереди - 2, т.к. будет только два подключения
 
-    def __init__(self, use_transport_layer_security=False, use_program_security=False):
+    def __init__(self, use_transport_layer_security=False):
         import socket
         # создаем сокет, работающий по протоколу TCP
         self.server_socket = socket.socket()
@@ -17,7 +17,6 @@ class Server:
         # порт - номер порта который принимает соединение
         self.server_socket.bind((self.host, self.port))
         self.tls = use_transport_layer_security
-        self.cipher = use_program_security
         #  число соединений, которые будут находиться в очереди соединений до вызова accept
         self.server_socket.listen(self.max_queue)
 
@@ -61,12 +60,10 @@ class Server:
 
 def main():
     from sys import argv
-    tls, cipher = False, False
+    tls = False
     if '--tls' in argv:
         tls = True
-    if '--cipher' in argv:
-        cipher = True
-    server = Server(tls, cipher)
+    server = Server(tls)
     server.run()
 
 

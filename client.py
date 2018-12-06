@@ -19,6 +19,12 @@ class Client:
             context.check_hostname = False
             self.socket = context.wrap_socket(self.socket, server_hostname=server_hostname)
 
+        if use_program_security:
+            from cryptography.fernet import Fernet
+            with open("key", 'r') as key_file:
+                self.fernet_key = bytes(key_file.readline(), encoding=self.encoding)
+            self.fernet = Fernet(self.fernet_key)
+
         self.socket.connect((server_hostname, self.port_to_connect))
 
         server_data = self.socket.recv(self.mes_size)
@@ -32,6 +38,8 @@ class Client:
 
         while True:
             server_data = self.socket.recv(self.mes_size)
+            if self.cipher:
+                server_data = self.fernet.decrypt(server_data)
             if not server_data:
                 break
             print(server_data.decode())
@@ -39,8 +47,12 @@ class Client:
     def user_data(self):
         while True:
             user_data = input()
+            if self.cipher:
+                user_data = self.fernet.encrypt(bytes(user_data, encoding=self.encoding))
+            else:
+                user_data = bytes(user_data, self.encoding)
             if user_data:  # не отсылаем пустую строку, это ломает что-то внутри _ssl.c
-                self.socket.send(bytes(user_data, self.encoding))
+                self.socket.send(user_data)
 
 
 def main():
