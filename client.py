@@ -8,7 +8,6 @@ class Client:
         import socket
 
         self.cipher = use_program_security
-
         self.socket = socket.socket()
 
         if use_transport_layer_security:
@@ -26,9 +25,8 @@ class Client:
             self.fernet = Fernet(self.fernet_key)
 
         self.socket.connect((server_hostname, self.port_to_connect))
-
-        server_data = self.socket.recv(self.mes_size)
-        print("ID:", server_data.strip().split()[2].decode())
+        server_data = self.socket.recv(self.mes_size)  #Получаем ID
+        print(server_data.decode().strip())
 
     def run(self):
         import threading
